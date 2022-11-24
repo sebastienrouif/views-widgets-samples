@@ -18,18 +18,20 @@ package com.example.recyclersample.flowerList
 
 import android.app.Activity
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import androidx.activity.viewModels
-import androidx.recyclerview.widget.ConcatAdapter
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
-import com.example.recyclersample.addFlower.AddFlowerActivity
-import com.example.recyclersample.flowerDetail.FlowerDetailActivity
 import com.example.recyclersample.R
+import com.example.recyclersample.addFlower.AddFlowerActivity
 import com.example.recyclersample.addFlower.FLOWER_DESCRIPTION
 import com.example.recyclersample.addFlower.FLOWER_NAME
 import com.example.recyclersample.data.Flower
+import com.example.recyclersample.flowerDetail.FlowerDetailActivity
+import java.util.UUID
 
 const val FLOWER_ID = "flower id"
 
@@ -37,6 +39,17 @@ class FlowersListActivity : AppCompatActivity() {
     private val newFlowerActivityRequestCode = 1
     private val flowersListViewModel by viewModels<FlowersListViewModel> {
         FlowersListViewModelFactory(this)
+    }
+    val h = Handler(Looper.getMainLooper())
+
+    var r : Runnable = Runnable {
+        val flowerName = "flow" + UUID.randomUUID().toString().substring(0, 5)
+        val flowerDescription = "des" + UUID.randomUUID().toString().substring(0, 5)
+        flowersListViewModel.insertFlower(flowerName, flowerDescription)
+        planAddingFlower()
+    }
+    fun planAddingFlower() {
+        h.postDelayed(r, 10_000);
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,11 +59,12 @@ class FlowersListActivity : AppCompatActivity() {
         /* Instantiates headerAdapter and flowersAdapter. Both adapters are added to concatAdapter.
         which displays the contents sequentially */
         val headerAdapter = HeaderAdapter()
+
         val flowersAdapter = FlowersAdapter { flower -> adapterOnClick(flower) }
-        val concatAdapter = ConcatAdapter(headerAdapter, flowersAdapter)
+//        val concatAdapter = ConcatAdapter(headerAdapter, flowersAdapter)
 
         val recyclerView: RecyclerView = findViewById(R.id.recycler_view)
-        recyclerView.adapter = concatAdapter
+        recyclerView.adapter = flowersAdapter
 
         flowersListViewModel.flowersLiveData.observe(this, {
             it?.let {
@@ -74,8 +88,9 @@ class FlowersListActivity : AppCompatActivity() {
 
     /* Adds flower to flowerList when FAB is clicked. */
     private fun fabOnClick() {
-        val intent = Intent(this, AddFlowerActivity::class.java)
-        startActivityForResult(intent, newFlowerActivityRequestCode)
+        planAddingFlower()
+//        val intent = Intent(this, AddFlowerActivity::class.java)
+//        startActivityForResult(intent, newFlowerActivityRequestCode)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intentData: Intent?) {
@@ -83,12 +98,12 @@ class FlowersListActivity : AppCompatActivity() {
 
         /* Inserts flower into viewModel. */
         if (requestCode == newFlowerActivityRequestCode && resultCode == Activity.RESULT_OK) {
-            intentData?.let { data ->
+
+            intentData?.also { data ->
                 val flowerName = data.getStringExtra(FLOWER_NAME)
                 val flowerDescription = data.getStringExtra(FLOWER_DESCRIPTION)
 
                 flowersListViewModel.insertFlower(flowerName, flowerDescription)
-            }
         }
     }
 }
